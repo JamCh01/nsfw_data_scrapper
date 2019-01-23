@@ -3,10 +3,6 @@ import uuid
 import requests
 from multiprocessing.dummy import Pool
 from functools import partial
-proxies = {
-    'http': 'socks5://127.0.0.1:1080',
-    'https': 'socks5://127.0.0.1:1080',
-}
 
 
 class Path():
@@ -29,8 +25,6 @@ class Path():
             porn=os.path.join('raw', 'porn'),
             sexy=os.path.join('raw', 'sexy'))
         if not self._save_folder:
-            for i in _save.values():
-                print()
             [
                 os.makedirs(name=v) for k, v in _save.items()
                 if not os.path.exists(path=v)
@@ -51,7 +45,7 @@ class Downloader():
         self.pool = Pool()
 
     def spider(self, url):
-        r = requests.get(url=url, headers=self.headers, proxies=proxies)
+        r = requests.get(url=url, headers=self.headers)
         r.raise_for_status()
         return r.content
 
