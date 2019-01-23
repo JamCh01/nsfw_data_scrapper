@@ -47,16 +47,19 @@ class Downloader():
     def spider(self, url):
         r = requests.get(url=url, headers=self.headers)
         r.raise_for_status()
+        if sum(len(chunk) for chunk in r.iter_content(1024)) < 1024:
+            return None
         return r.content
 
     def save(self, content, classification):
-        with open(
-                file=os.path.abspath(
-                    os.path.join(
-                        self.save_folder.get(classification),
-                        str(uuid.uuid4()))),
-                mode='wb') as f:
-            f.write(content)
+        if content:
+            with open(
+                    file=os.path.abspath(
+                        os.path.join(
+                            self.save_folder.get(classification),
+                            str(uuid.uuid4()))),
+                    mode='wb') as f:
+                f.write(content)
 
     def parse(self):
         urls = dict()
