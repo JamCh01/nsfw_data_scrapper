@@ -81,4 +81,5 @@ def test():
     downloader.run()
 
 
-test()
+if __name__ == '__main__':
+    test()
