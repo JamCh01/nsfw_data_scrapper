@@ -42,7 +42,7 @@ class Downloader():
         self.path = Path()
         self.url_file = self.path.url_file()
         self.save_folder = self.path.save_folder()
-        self.pool = Pool()
+        self.pool = Pool(500)
 
     def spider(self, url):
         r = requests.get(url=url, headers=self.headers)
