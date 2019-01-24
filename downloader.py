@@ -62,18 +62,21 @@ class Downloader():
         self.url_file = self.path.url_file()
         self.save_folder = self.path.save_folder()
         self.pool = Pool(500)
+        self.max_retry = 5
         logger = Logger()
         logger.print_log()
 
-    def spider(self, url):
+    def spider(self, url, retry=1):
         url = url.strip()
         try:
             r = requests.get(url=url, headers=self.headers)
             r.raise_for_status()
         except Exception as e:
-            logging.warning('{url} error {status_code}'.format(
-                url=url, status_code=r.status_code))
-            return None
+            logging.warning('{url} error, retry: {retry_times}'.format(
+                url=url, retry_times=retry))
+            if retry < self.max_retry:
+                retry += 1
+                self.spider(url=url, retry=retry)
         if sum(len(chunk) for chunk in r.iter_content(1024)) < 1024:
             logging.warning('{url} filtered'.format(url=url))
             return None
