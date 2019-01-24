@@ -3,6 +3,25 @@ import uuid
 import requests
 from multiprocessing.dummy import Pool
 from functools import partial
+import logging
+
+
+class Logger():
+    def __init__(self, filename='download.log'):
+        logging.basicConfig(
+            level=logging.WARN,
+            format='%(asctime)s %(levelname)s %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S',
+            filename=filename,
+            filemode='a')
+
+    def print_log(self):
+        console = logging.StreamHandler()
+        console.setLevel(logging.INFO)
+        formatter = logging.Formatter(
+            '%(name)-12s: %(levelname)-8s %(message)s')
+        console.setFormatter(formatter)
+        logging.getLogger('').addHandler(console)
 
 
 class Path():
@@ -43,12 +62,22 @@ class Downloader():
         self.url_file = self.path.url_file()
         self.save_folder = self.path.save_folder()
         self.pool = Pool(500)
+        logger = Logger()
+        logger.print_log()
 
     def spider(self, url):
-        r = requests.get(url=url, headers=self.headers)
-        r.raise_for_status()
-        if sum(len(chunk) for chunk in r.iter_content(1024)) < 1024:
+        url = url.strip()
+        try:
+            r = requests.get(url=url, headers=self.headers)
+            r.raise_for_status()
+        except Exception as e:
+            logging.warning('{url} error {status_code}'.format(
+                url=url, status_code=r.status_code))
             return None
+        if sum(len(chunk) for chunk in r.iter_content(1024)) < 1024:
+            logging.warning('{url} filtered'.format(url=url))
+            return None
+        logging.info('{url} ok'.format(url=url))
         return r.content
 
     def save(self, content, classification):
