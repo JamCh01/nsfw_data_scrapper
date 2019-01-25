@@ -4,12 +4,13 @@ import requests
 from multiprocessing.dummy import Pool
 from functools import partial
 import logging
+import time
 
 
 class Logger():
     def __init__(self, filename='download.log'):
         logging.basicConfig(
-            level=logging.WARN,
+            level=logging.INFO,
             format='%(asctime)s %(levelname)s %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
             filename=filename,
@@ -61,27 +62,31 @@ class Downloader():
         self.path = Path()
         self.url_file = self.path.url_file()
         self.save_folder = self.path.save_folder()
-        self.pool = Pool(500)
+        self.pool = Pool(2000)
         self.max_retry = 5
         logger = Logger()
         logger.print_log()
 
-    def spider(self, url, retry=1):
+    def spider(self, url, retry=0):
         url = url.strip()
         try:
-            r = requests.get(url=url, headers=self.headers)
+            r = requests.get(url=url, headers=self.headers, timeout=5)
             r.raise_for_status()
+            if sum(len(chunk) for chunk in r.iter_content(512)) < 1024:
+                logging.warning('{url} filtered'.format(url=url))
+                return None
+            return {'content': r.content, 'url': url}
         except Exception as e:
             logging.warning('{url} error, retry: {retry_times}'.format(
                 url=url, retry_times=retry))
             if retry < self.max_retry:
                 retry += 1
+                time.sleep(1)
                 self.spider(url=url, retry=retry)
-        if sum(len(chunk) for chunk in r.iter_content(1024)) < 1024:
-            logging.warning('{url} filtered'.format(url=url))
-            return None
-        logging.info('{url} ok'.format(url=url))
-        return r.content
+            else:
+                return None
+
+        # logging.info('{url} ok'.format(url=url))
 
     def save(self, content, classification):
         if content:
@@ -91,7 +96,9 @@ class Downloader():
                             self.save_folder.get(classification),
                             str(uuid.uuid4()))),
                     mode='wb') as f:
-                f.write(content)
+
+                f.write(content.get('content'))
+            logging.info('{url} ok'.format(url=content.get('url')))
 
     def parse(self):
         urls = dict()
